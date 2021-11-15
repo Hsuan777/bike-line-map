@@ -1,0 +1,22 @@
+body {
+  overflow-x: hidden;
+}
+
+h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6, ul, p, figure {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+th, td {
+  vertical-align: center;
+}
+
+td {
+  border-left: 0;
+  border-right: 0;
+}
