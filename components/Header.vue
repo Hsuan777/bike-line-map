@@ -24,13 +24,13 @@
               尋找 U-bike
             </NuxtLink>
           </li>
-          <li class="nav-item">
+          <!-- <li class="nav-item">
             <NuxtLink to="/" class="nav-link">
               路線規劃
             </NuxtLink>
-          </li>
+          </li> -->
           <li class="nav-item">
-            <NuxtLink to="/" class="nav-link">
+            <NuxtLink to="/recommend" class="nav-link">
               推薦路線
             </NuxtLink>
           </li>

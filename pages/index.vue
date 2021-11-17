@@ -37,7 +37,6 @@
                     class="form-control py-3 border-secondary"
                     placeholder="請輸入站點名稱"
                     :disabled="nowCityName === '請選擇城市'"
-                    @change="renderBikeData"
                   >
                 </div>
                 <div class="col-lg-6">
@@ -127,7 +126,6 @@
             class="form-control py-3 mb-5 border-secondary text-center d-none d-lg-block"
             placeholder="請輸入站點名稱"
             :disabled="nowCityName === '請選擇城市'"
-            @change="renderBikeData"
           >
           <div v-if="cacheSearch" class="d-none d-lg-block">
             <p class="mb-3">
