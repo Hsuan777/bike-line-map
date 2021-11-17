@@ -1,6 +1,6 @@
 <template>
   <div>
-    <figure class="banner banner__index magic-height-400 mb-15">
+    <figure class="banner banner__index magic-height-400 mb-8 mb-lg-15">
       <div class="container h-100">
         <div class="row align-items-center h-100">
           <div class="col-md-6 mx-auto">
@@ -9,13 +9,16 @@
             </h2>
             <div class="p-5 bg-white rounded">
               <div class="row g-2 mb-5">
-                <div class="col-md-6">
+                <div class="col-lg-6">
                   <select
                     class="form-select py-3 border-secondary"
                     aria-label="Default select example"
                     @change="changeCity($event.target.value)"
                   >
-                    <option :selected="nowCityName === '請選擇城市'">
+                    <option
+                      :selected="nowCityName === '請選擇城市'"
+                      :hidden="nowCityName !== '請選擇城市'"
+                    >
                       請選擇城市
                     </option>
                     <option
@@ -28,28 +31,31 @@
                     </option>
                   </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-lg-6 mb-5">
                   <input
                     v-model="cacheSearch"
-                    class="form-control text-secondary py-3 border-secondary"
+                    class="form-control py-3 border-secondary"
                     placeholder="請輸入站點名稱"
+                    :disabled="nowCityName === '請選擇城市'"
+                    @change="renderBikeData"
                   >
                 </div>
-              </div>
-
-              <div class="d-flex align-items-center">
-                <button
-                  type="button"
-                  class="btn btn-lg btn-info me-5 d-flex align-items-center"
-                  @click="setLocation"
-                >
-                  <span class="material-icons-outlined text-white me-3"> person_pin_circle </span>
-                  以我所在的位置搜尋
-                </button>
-                <p class="text-danger d-flex align-items-center">
-                  <span class="material-icons-outlined me-3"> warning </span>
-                  此功能需開啟衛星定位
-                </p>
+                <div class="col-lg-6">
+                  <button
+                    type="button"
+                    class="btn btn-lg btn-info me-5 d-flex align-items-center w-100"
+                    @click="setLocation"
+                  >
+                    <span class="material-icons-outlined text-white me-3"> person_pin_circle </span>
+                    以我所在的位置搜尋
+                  </button>
+                </div>
+                <div class="col-lg-6 d-flex align-items-center">
+                  <p class="text-danger d-flex align-items-center">
+                    <span class="material-icons-outlined me-3"> warning </span>
+                    此功能需開啟衛星定位
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -58,7 +64,7 @@
     </figure>
     <div class="container mb-15">
       <div class="row">
-        <div class="col-md-2">
+        <div class="col-md-2 order-2 order-md-1">
           <ul class="list-group list-group-flush">
             <li
               class="
@@ -116,9 +122,50 @@
               <p>暫停營運</p>
             </li>
           </ul>
+          <input
+            v-model="cacheSearch"
+            class="form-control py-3 mb-5 border-secondary text-center d-none d-lg-block"
+            placeholder="請輸入站點名稱"
+            :disabled="nowCityName === '請選擇城市'"
+            @change="renderBikeData"
+          >
+          <div v-if="cacheSearch" class="d-none d-lg-block">
+            <p class="mb-3">
+              站點列表
+            </p>
+            <ul class="list-group list-group-flush overflow-auto magic-height-300 mb-5">
+              <li
+                v-for="item in filterBikeData"
+                :key="item.StationUID"
+                class="list-group-item list-group-item-action"
+                @click="
+                  setStation(item.StationPosition.PositionLat, item.StationPosition.PositionLon)
+                "
+              >
+                {{ item.StationName.Zh_tw }}
+              </li>
+            </ul>
+          </div>
         </div>
-        <div class="col-md-10">
-          <div id="mapID" ref="mapID" class="magic-height-400" />
+        <div class="col-md-10 order-1 order-md-2">
+          <div v-if="cacheSearch" class="d-lg-none">
+            <p class="mb-3">
+              站點列表
+            </p>
+            <ul class="list-group list-group-flush overflow-auto magic-height-300 mb-5">
+              <li
+                v-for="item in filterBikeData"
+                :key="item.StationUID"
+                class="list-group-item list-group-item-action"
+                @click="
+                  setStation(item.StationPosition.PositionLat, item.StationPosition.PositionLon)
+                "
+              >
+                {{ item.StationName.Zh_tw }}
+              </li>
+            </ul>
+          </div>
+          <div id="mapID" ref="mapID" class="magic-height-600" />
         </div>
       </div>
     </div>
@@ -135,7 +182,7 @@ export default {
       leaflet: {},
       bikeData: [],
       availabilityBikeData: [],
-      nowCityName: '',
+      nowCityName: '請選擇城市',
       cacheSearch: '',
       cities: [
         {
@@ -229,14 +276,20 @@ export default {
       ],
     };
   },
+  computed: {
+    filterBikeData() {
+      return this.bikeData.filter((item) => item.StationName.Zh_tw.match(this.cacheSearch));
+    },
+  },
   created() {
     if (process.client) {
       this.leaflet = require('leaflet');
+      const markerCluster = require('leaflet.markercluster');
+      this.leaflet = { ...this.leaflet, ...markerCluster };
     }
   },
   mounted() {
     this.getUserPosition();
-    this.getBikeData('Taipei');
   },
   methods: {
     getUserPosition() {
@@ -292,21 +345,21 @@ export default {
         })
         .then((res) => {
           this.bikeData = res.data;
-        });
-      this.$axios
-        .get(availabilityApiUrl, {
-          headers: this.getAuthorizationHeader(),
-        })
-        .then((res) => {
-          this.availabilityBikeData = res.data;
-          this.bikeData.forEach((item, index) => {
-            this.availabilityBikeData.forEach((availabilityItem) => {
-              if (item.StationUID === availabilityItem.StationUID) {
-                this.bikeData[index] = { ...item, ...availabilityItem };
-              }
+          this.$axios
+            .get(availabilityApiUrl, {
+              headers: this.getAuthorizationHeader(),
+            })
+            .then((respons) => {
+              this.availabilityBikeData = respons.data;
+              this.bikeData.forEach((item, index) => {
+                this.availabilityBikeData.forEach((availabilityItem) => {
+                  if (item.StationUID === availabilityItem.StationUID) {
+                    this.bikeData[index] = { ...item, ...availabilityItem };
+                  }
+                });
+              });
+              this.renderBikeData();
             });
-          });
-          this.renderBikeData();
         });
     },
     setIconColor(color) {
@@ -320,9 +373,7 @@ export default {
       return iconColor;
     },
     renderBikeData() {
-      const markerCluster = require('leaflet.markercluster');
-      this.leaflet = { ...this.leaflet, ...markerCluster };
-      const markers = this.leaflet.markerClusterGroup().addTo(this.myMap);
+      const markers = this.leaflet.markerClusterGroup();
       this.bikeData.forEach((item) => {
         let iconColor = '';
         if (item.ServiceStatus === 1 && item.AvailableRentBikes > 0) {
@@ -334,15 +385,20 @@ export default {
         } else {
           iconColor = 'black';
         }
-        markers.addLayer();
-        this.leaflet
-          .marker([item.StationPosition.PositionLat, item.StationPosition.PositionLon], {
-            icon: this.setIconColor(iconColor),
-          })
-          .addTo(this.myMap).bindPopup(`<p>${item.StationName.Zh_tw}</p>
-          <p>可借數量 ${item.AvailableRentBikes}</p>
-          <p>歸還車位數量 ${item.AvailableReturnBikes}</p>`);
+        // 若單獨使用 marker，可以接續 addTo() 將其加入地圖，但使用群組就不需要
+        markers.addLayer(
+          this.leaflet.marker(
+            [item.StationPosition.PositionLat, item.StationPosition.PositionLon],
+            {
+              icon: this.setIconColor(iconColor),
+            },
+          ).bindPopup(`<p>${item.StationName.Zh_tw}</p>
+            <p>營運狀態: ${item.ServiceStatus === 1 ? '正常營運' : '暫停營運'}</p>
+            <p>可借數量: ${item.AvailableRentBikes}</p>
+            <p>可歸還量: ${item.AvailableReturnBikes}</p>`),
+        );
       });
+      this.myMap.addLayer(markers);
     },
     getAuthorizationHeader() {
       const AppID = '3209d3c409014e8cb42b5e83f861c102';
@@ -355,12 +411,21 @@ export default {
       const Authorization = `hmac username="${AppID}", algorithm="hmac-sha1", headers="x-date", signature="${HMAC}"`;
       return { Authorization, 'X-Date': GMTString };
     },
+    // 以自身為中心點
     setLocation() {
       this.nowCityName = '請選擇城市';
-      this.myMap.setView([this.locationUser.latitude, this.locationUser.longitude], 14);
+      this.cacheSearch = '';
+      this.myMap.setView([this.locationUser.latitude, this.locationUser.longitude], 13);
     },
+    // 以站點為中心點
+    setStation(latitude, longitude) {
+      this.myMap.setView([latitude, longitude], 18);
+      this.leaflet.marker([latitude, longitude]).openPopup();
+    },
+    // 以城市車站為中心點
     changeCity(value) {
       this.nowCityName = value;
+      this.cacheSearch = '';
       const newCity = this.cities.filter((item) => item.name === value)[0];
       this.myMap.setView([newCity.coordinate.latitude, newCity.coordinate.longitude], 13);
       this.getBikeData(newCity.nameEn);

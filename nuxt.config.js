@@ -19,6 +19,8 @@ export default {
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Icons'},
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Icons+Outlined'},
       { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css'},
+      { rel: 'stylesheet', href: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.css'},
+      { rel: 'stylesheet', href: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.Default.css'},
     ]
   },
 
