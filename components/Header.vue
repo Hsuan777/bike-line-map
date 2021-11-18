@@ -20,18 +20,13 @@
       <div id="navbarSupportedContent" class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <NuxtLink to="/" class="nav-link active">
+            <NuxtLink to="/" class="nav-link">
               尋找 U-bike
             </NuxtLink>
           </li>
-          <!-- <li class="nav-item">
-            <NuxtLink to="/" class="nav-link">
-              路線規劃
-            </NuxtLink>
-          </li> -->
           <li class="nav-item">
             <NuxtLink to="/recommend" class="nav-link">
-              推薦路線
+              搜尋路線
             </NuxtLink>
           </li>
         </ul>

@@ -52,7 +52,7 @@
                 <div class="col-lg-6 d-flex align-items-center">
                   <p class="text-danger d-flex align-items-center">
                     <span class="material-icons-outlined me-3"> warning </span>
-                    此功能需開啟衛星定位
+                    此功能需開啟定位
                   </p>
                 </div>
               </div>
@@ -61,7 +61,7 @@
         </div>
       </div>
     </figure>
-    <div class="container mb-15">
+    <section class="container mb-15">
       <div class="row">
         <div class="col-md-2 order-2 order-md-1">
           <ul class="list-group list-group-flush">
@@ -75,6 +75,17 @@
             >
               <span class="material-icons-outlined text-info me-3"> person_pin_circle </span>
               <p>目前位置</p>
+            </li>
+            <li
+              class="
+                list-group-item list-group-item-action
+                d-flex
+                justify-content-center
+                align-items-center
+              "
+            >
+              <span class="material-icons-outlined text-search me-3"> person_pin_circle </span>
+              <p>搜尋位置</p>
             </li>
             <li
               class="
@@ -136,9 +147,7 @@
                 v-for="item in filterBikeData"
                 :key="item.StationUID"
                 class="list-group-item list-group-item-action"
-                @click="
-                  setStation(item.StationPosition.PositionLat, item.StationPosition.PositionLon)
-                "
+                @click="setStation(item)"
               >
                 {{ item.StationName.Zh_tw }}
               </li>
@@ -155,9 +164,7 @@
                 v-for="item in filterBikeData"
                 :key="item.StationUID"
                 class="list-group-item list-group-item-action"
-                @click="
-                  setStation(item.StationPosition.PositionLat, item.StationPosition.PositionLon)
-                "
+                @click="setStation(item)"
               >
                 {{ item.StationName.Zh_tw }}
               </li>
@@ -166,7 +173,7 @@
           <div id="mapID" ref="mapID" class="magic-height-600" />
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -180,6 +187,8 @@ export default {
       leaflet: {},
       bikeData: [],
       availabilityBikeData: [],
+      locationBikeData: [],
+      availabilityLocationBikeData: [],
       nowCityName: '請選擇城市',
       cacheSearch: '',
       cities: [
@@ -272,6 +281,8 @@ export default {
           },
         },
       ],
+      markers: null,
+      searchMarker: null,
     };
   },
   computed: {
@@ -322,7 +333,7 @@ export default {
         .addTo(this.myMap);
       // 顯示使用者座標方圓區域
       this.leaflet
-        .circle([this.locationUser.latitude, this.locationUser.longitude], { radius: 3000 })
+        .circle([this.locationUser.latitude, this.locationUser.longitude], { radius: 1000 })
         .addTo(this.myMap);
       // 標示使用者座標
       this.leaflet
@@ -334,6 +345,7 @@ export default {
     error() {
       alert('無法取得你的位置');
     },
+    // 取得該城市腳踏車資料
     getBikeData(city) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bike/Station/${city}?$format=JSON`;
       const availabilityApiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bike/Availability/${city}?$format=JSON`;
@@ -356,47 +368,35 @@ export default {
                   }
                 });
               });
-              this.renderBikeData();
+              this.renderBikeData(this.bikeData);
             });
         });
     },
-    setIconColor(color) {
-      const iconColor = new this.leaflet.Icon({
-        iconUrl: `https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
-      });
-      return iconColor;
-    },
-    renderBikeData() {
-      const markers = this.leaflet.markerClusterGroup();
-      this.bikeData.forEach((item) => {
-        let iconColor = '';
-        if (item.ServiceStatus === 1 && item.AvailableRentBikes > 0) {
-          iconColor = 'green';
-        } else if (item.ServiceStatus === 1 && item.AvailableRentBikes === 0) {
-          iconColor = 'yellow';
-        } else if (item.ServiceStatus === 1 && item.AvailableReturnBikes === 0) {
-          iconColor = 'red';
-        } else {
-          iconColor = 'black';
-        }
-        // 若單獨使用 marker，可以接續 addTo() 將其加入地圖，但使用群組就不需要
-        markers.addLayer(
-          this.leaflet.marker(
-            [item.StationPosition.PositionLat, item.StationPosition.PositionLon],
-            {
-              icon: this.setIconColor(iconColor),
-            },
-          ).bindPopup(`<p>${item.StationName.Zh_tw}</p>
-            <p>營運狀態: ${item.ServiceStatus === 1 ? '正常營運' : '暫停營運'}</p>
-            <p>可借數量: ${item.AvailableRentBikes}</p>
-            <p>可歸還量: ${item.AvailableReturnBikes}</p>`),
-        );
-      });
-      this.myMap.addLayer(markers);
+    getLocationBikeData() {
+      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bike/Station/NearBy?$spatialFilter=nearby(${this.locationUser.latitude}%2C%20${this.locationUser.longitude}%2C%201000)&$format=JSON`;
+      const availabilityApiUrl = `https://ptx.transportdata.tw/MOTC/v2/Bike/Availability/NearBy?$spatialFilter=nearby(${this.locationUser.latitude}%2C%20${this.locationUser.longitude}%2C%201000)&$format=JSON`;
+      this.$axios
+        .get(apiUrl, {
+          headers: this.getAuthorizationHeader(),
+        })
+        .then((res) => {
+          this.locationBikeData = res.data;
+          this.$axios
+            .get(availabilityApiUrl, {
+              headers: this.getAuthorizationHeader(),
+            })
+            .then((respons) => {
+              this.availabilityBikeData = respons.data;
+              this.locationBikeData.forEach((item, index) => {
+                this.availabilityLocationBikeData.forEach((availabilityItem) => {
+                  if (item.StationUID === availabilityItem.StationUID) {
+                    this.locationBikeData[index] = { ...item, ...availabilityItem };
+                  }
+                });
+              });
+              this.renderBikeData(this.locationBikeData);
+            });
+        });
     },
     getAuthorizationHeader() {
       const AppID = '3209d3c409014e8cb42b5e83f861c102';
@@ -409,16 +409,44 @@ export default {
       const Authorization = `hmac username="${AppID}", algorithm="hmac-sha1", headers="x-date", signature="${HMAC}"`;
       return { Authorization, 'X-Date': GMTString };
     },
+    setIconColor(color) {
+      const iconColor = new this.leaflet.Icon({
+        iconUrl: `https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+      return iconColor;
+    },
     // 以自身為中心點
     setLocation() {
       this.nowCityName = '請選擇城市';
       this.cacheSearch = '';
       this.myMap.setView([this.locationUser.latitude, this.locationUser.longitude], 13);
+      this.getLocationBikeData();
     },
     // 以站點為中心點
-    setStation(latitude, longitude) {
-      this.myMap.setView([latitude, longitude], 18);
-      this.leaflet.marker([latitude, longitude]).openPopup();
+    setStation(item) {
+      if (this.searchMarker) {
+        this.myMap.removeLayer(this.searchMarker);
+      }
+      this.myMap.setView([item.StationPosition.PositionLat, item.StationPosition.PositionLon], 18);
+      this.searchMarker = this.leaflet
+        .marker([item.StationPosition.PositionLat, item.StationPosition.PositionLon], {
+          icon: this.setIconColor('violet'),
+        })
+        .bindPopup(
+          `<p>${item.StationName.Zh_tw}</p>
+            <p>營運狀態: ${item.ServiceStatus === 1 ? '正常營運' : '暫停營運'}</p>
+            <p>可借數量: <span class="${
+  item.AvailableRentBikes === 0 ? 'text-warning' : 'text-success'
+}">${item.AvailableRentBikes} </span></p>
+            <p>可歸還量: <span class="${
+  item.AvailableReturnBikes === 0 ? 'text-danger' : 'text-success'
+}">${item.AvailableReturnBikes}</span></p>`,
+        );
+      this.searchMarker.addTo(this.myMap).openPopup();
     },
     // 以城市車站為中心點
     changeCity(value) {
@@ -427,6 +455,41 @@ export default {
       const newCity = this.cities.filter((item) => item.name === value)[0];
       this.myMap.setView([newCity.coordinate.latitude, newCity.coordinate.longitude], 13);
       this.getBikeData(newCity.nameEn);
+    },
+    renderBikeData(apiBikeData) {
+      if (this.markers) {
+        this.myMap.removeLayer(this.markers);
+      }
+      this.markers = this.leaflet.markerClusterGroup();
+      apiBikeData.forEach((item) => {
+        let iconColor = '';
+        if (item.ServiceStatus === 1 && item.AvailableRentBikes > 0) {
+          iconColor = 'green';
+        } else if (item.ServiceStatus === 1 && item.AvailableRentBikes === 0) {
+          iconColor = 'yellow';
+        } else if (item.ServiceStatus === 1 && item.AvailableReturnBikes === 0) {
+          iconColor = 'red';
+        } else {
+          iconColor = 'black';
+        }
+        // 若單獨使用 marker，可以接續 addTo() 將其加入地圖，但使用群組就不需要
+        this.markers.addLayer(
+          this.leaflet.marker(
+            [item.StationPosition.PositionLat, item.StationPosition.PositionLon],
+            {
+              icon: this.setIconColor(iconColor),
+            },
+          ).bindPopup(`<p>${item.StationName.Zh_tw}</p>
+            <p>營運狀態: ${item.ServiceStatus === 1 ? '正常營運' : '暫停營運'}</p>
+            <p>可借數量: <span class="${
+  item.AvailableRentBikes === 0 ? 'text-warning' : 'text-success'
+}">${item.AvailableRentBikes} </span></p>
+            <p>可歸還量: <span class="${
+  item.AvailableReturnBikes === 0 ? 'text-danger' : 'text-success'
+}">${item.AvailableReturnBikes}</span></p>`),
+        );
+      });
+      this.myMap.addLayer(this.markers);
     },
   },
 };

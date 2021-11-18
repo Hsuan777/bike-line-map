@@ -87,6 +87,7 @@ $theme-colors: (
   "info":       $info,
   "warning":    $warning,
   "danger":     $danger,
+  "search":     $purple,
   "light":      $light,
   "dark":       $dark,
   "white":      $white,
@@ -1677,6 +1678,7 @@ $kbd-bg:                            $gray-900 !default;
 $pre-color:                         null !default;
 
 $magic-heights: (
+  "128": 128px,
   "150": 150px,
   "190": 190px,
   "200": 200px,

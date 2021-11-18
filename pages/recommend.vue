@@ -2,12 +2,12 @@
   <div>
     <figure class="banner banner__recommend magic-height-300 mb-8 mb-lg-15">
       <div class="container d-flex align-items-end h-100">
-        <p class="mb-5 fz-huge fw-bolder zi-9">
-          推薦行程
-        </p>
+        <h2 class="mb-5 fz-huge fw-bolder zi-9">
+          自行車路線
+        </h2>
       </div>
     </figure>
-    <div class="container bg-secondary py-5 mb-5 rounded">
+    <section class="container bg-secondary py-5 mb-5 rounded">
       <div class="row">
         <div class="col-md-6">
           <select
@@ -37,30 +37,113 @@
           >
         </div>
       </div>
-    </div>
-    <div class="container">
+    </section>
+    <section class="container mb-8 mb-lg-15">
       <div class="row">
-        <div class="col-md-10 mx-auto">
-          <ul class="list-unstyled row g-3">
+        <div class="col-lg-5 mb-8 mb-lg-0">
+          <ul class="list-unstyled justify-content-center overflow-auto magic-height-600">
             <li
               v-for="(item, index) in filterCyclingData"
               :key="item.RouteName + index"
-              class="col-md-6 border border-secondary"
+              class="border border-secondary me-2 mb-2"
+              @click="changeLayer(item.Geometry)"
             >
               <div class="p-3">
-                <h2>{{ item.RouteName }}</h2>
-                <p>開始地點: {{ item.RoadSectionStart }}</p>
-                <p>結束地點: {{ item.RoadSectionEnd }}</p>
+                <h2 class="fz-larger">
+                  {{ item.RouteName }}
+                </h2>
+                <ul class="list-unstyled row">
+                  <li class="col-lg-8">
+                    <p>開始地點: {{ item.RoadSectionStart }}</p>
+                  </li>
+                  <li class="col-lg-4">
+                    <p v-if="item.Direction">
+                      車道類型: {{ item.Direction }}
+                    </p>
+                    <p v-else>
+                      車道類型: 無說明
+                    </p>
+                  </li>
+                  <li class="col-lg-8">
+                    <p>結束地點: {{ item.RoadSectionEnd }}</p>
+                  </li>
+                  <li class="col-lg-4">
+                    <p>車道長度: {{ item.CyclingLength }}</p>
+                  </li>
+                </ul>
               </div>
             </li>
           </ul>
         </div>
+        <div class="col-lg-7">
+          <div id="mapID" ref="mapID" class="magic-height-600" />
+        </div>
       </div>
-    </div>
+    </section>
+    <section v-if="scenicSpotData[0]" class="container">
+      <p class="mb-5 fz-larger">
+        附近景點
+      </p>
+      <ul class="list-unstyled row row-cols-1 row-cols-md-3 row-cols-lg-4">
+        <li
+          v-for="item in scenicSpotData"
+          :key="item.ID"
+          class="col mb-3 mb-md-14 position-relative"
+        >
+          <div class="border rounded-4 h-100">
+            <a
+              href="#mapID"
+              class="stretched-link"
+              @click="
+                setScenicSpotCoordinate(
+                  item.Name,
+                  item.Position.PositionLat,
+                  item.Position.PositionLon,
+                )
+              "
+            >
+              <img
+                v-if="item.Picture.PictureUrl1"
+                :src="item.Picture.PictureUrl1"
+                :alt="item.Picture.PictureDescription1"
+                class="img magic-height-128 magic-height-md-190"
+              >
+              <p
+                v-else
+                class="
+                  img
+                  magic-height-128 magic-height-md-190
+                  bg-grey
+                  text-secondary
+                  fz-large
+                  d-flex
+                  justify-content-center
+                  align-items-center
+                "
+              >
+                暫未提供
+              </p>
+            </a>
+            <div class="py-3 px-4">
+              <h2 class="fz-medium mb-2">
+                {{ item.Name }}
+              </h2>
+              <p class="text-info mb-3 d-flex">
+                {{ item.City }}
+              </p>
+              <p class="text-truncate">
+                {{ item.Description }}
+              </p>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 <script>
 import JsSHA from 'jssha';
+import Wicket from 'wicket';
 
 export default {
   data() {
@@ -159,6 +242,8 @@ export default {
         },
       ],
       cyclingData: [],
+      myLayer: null,
+      scenicSpotData: [],
     };
   },
   computed: {
@@ -166,8 +251,14 @@ export default {
       return this.cyclingData.filter((item) => item.RouteName.match(this.cacheSearch));
     },
   },
+  created() {
+    if (process.client) {
+      this.leaflet = require('leaflet');
+    }
+  },
   mounted() {
     this.getCyclingData('Taipei');
+    this.displayMap();
   },
   methods: {
     getCyclingData(city) {
@@ -180,10 +271,88 @@ export default {
           this.cyclingData = res.data;
         });
     },
+    getScenicSpotData(latitude, longitude) {
+      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Tourism/ScenicSpot?$spatialFilter=nearby(${latitude}%2C%20${longitude}%2C%202000)&$format=JSON`;
+      this.$axios.get(apiUrl).then((res) => {
+        this.scenicSpotData = res.data;
+      });
+    },
     changeCity(value) {
       this.nowCityName = value;
       this.cacheSearch = '';
       this.getCyclingData(value);
+    },
+    changeLayer(geo) {
+      this.polyLine(geo);
+    },
+    setScenicSpotCoordinate(name, latitude, longitude) {
+      if (this.cacheCoordinate) {
+        this.myMap.removeLayer(this.cacheCoordinate);
+      }
+      this.cacheCoordinate = this.leaflet
+        .marker([latitude, longitude], {
+          icon: this.setIconColor('blue'),
+        })
+        .bindPopup(`<p>${name}</p>`);
+      // 加到地圖後，再執行 openPopup
+      this.cacheCoordinate.addTo(this.myMap).openPopup();
+      this.myMap.setView([latitude, longitude], 14);
+    },
+    setIconColor(color) {
+      const iconColor = new this.leaflet.Icon({
+        iconUrl: `https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+      return iconColor;
+    },
+    displayMap() {
+      this.myMap = this.leaflet.map('mapID', {
+        center: [25.0462, 121.5174],
+        zoom: 13,
+      });
+      // 加入圖層
+      this.leaflet
+        .tileLayer(
+          'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
+          {
+            attribution:
+              'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken:
+              'pk.eyJ1IjoidmljMzMzIiwiYSI6ImNrdXRqNHBjbTVwa3Myb21uc3hrajJkeHEifQ.TeelvbEBo9SIQjYpUdv70g',
+          },
+        )
+        .addTo(this.myMap);
+    },
+    polyLine(geo) {
+      const wicket = new Wicket.Wkt();
+      const geojsonFeature = wicket.read(geo).toJson();
+      const myStyle = {
+        color: '#fe5e01',
+        weight: 5,
+        opacity: 1,
+      };
+      if (this.myLayer) {
+        this.myMap.removeLayer(this.myLayer);
+      }
+      this.myLayer = this.leaflet
+        .geoJSON(geojsonFeature, {
+          style: myStyle,
+        })
+        .addTo(this.myMap);
+      this.myLayer.addData(geojsonFeature);
+      // zoom the map to the layer
+      this.myMap.fitBounds(this.myLayer.getBounds());
+      this.getScenicSpotData(
+        geojsonFeature.coordinates[0][0][1],
+        geojsonFeature.coordinates[0][0][0],
+      );
     },
     getAuthorizationHeader() {
       const AppID = '3209d3c409014e8cb42b5e83f861c102';

@@ -1,9 +1,9 @@
 export default {
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'bike-line-map',
+    title: 'U-Bike 繞台灣',
     htmlAttrs: {
-      lang: 'en'
+      lang: 'zh_TW'
     },
     meta: [
       { charset: 'utf-8' },
