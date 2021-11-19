@@ -39,19 +39,19 @@
                     :disabled="nowCityName === '請選擇城市'"
                   >
                 </div>
-                <div class="col-lg-6">
+                <div class="col-xl-6">
                   <button
                     type="button"
                     class="btn btn-lg btn-info me-5 d-flex align-items-center w-100"
                     @click="setLocation"
                   >
                     <span class="material-icons-outlined text-white me-3"> person_pin_circle </span>
-                    以我所在的位置搜尋
+                    以我的位置搜尋
                   </button>
                 </div>
-                <div class="col-lg-6 d-flex align-items-center">
+                <div class="col-xl-6 d-flex align-items-center">
                   <p class="text-danger d-flex align-items-center">
-                    <span class="material-icons-outlined me-3"> warning </span>
+                    <span class="material-icons-outlined ms-4 me-3"> warning </span>
                     此功能需開啟定位
                   </p>
                 </div>
@@ -444,7 +444,10 @@ export default {
 }">${item.AvailableRentBikes} </span></p>
             <p>可歸還量: <span class="${
   item.AvailableReturnBikes === 0 ? 'text-danger' : 'text-success'
-}">${item.AvailableReturnBikes}</span></p>`,
+}">${item.AvailableReturnBikes}</span></p>
+<a href="https://www.google.com.tw/maps/search/${
+  item.StationName.Zh_tw
+}" target="_blank">Google 導航</a>`,
         );
       this.searchMarker.addTo(this.myMap).openPopup();
     },
@@ -486,7 +489,11 @@ export default {
 }">${item.AvailableRentBikes} </span></p>
             <p>可歸還量: <span class="${
   item.AvailableReturnBikes === 0 ? 'text-danger' : 'text-success'
-}">${item.AvailableReturnBikes}</span></p>`),
+}">${
+  item.AvailableReturnBikes
+}</span></p><a href="https://www.google.com.tw/maps/search/${
+  item.StationName.Zh_tw
+}" target="_blank">Google 導航</a>`),
         );
       });
       this.myMap.addLayer(this.markers);

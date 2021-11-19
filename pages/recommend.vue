@@ -80,21 +80,16 @@
         </div>
       </div>
     </section>
-    <section v-if="scenicSpotData[0]" class="container">
+    <section v-if="scenicSpotData[0]" class="container mb-8 mb-lg-15">
       <p class="mb-5 fz-larger">
-        附近景點
+        附近景點(方圓兩公里)
       </p>
-      <ul class="list-unstyled row row-cols-1 row-cols-md-3 row-cols-lg-4">
-        <li
-          v-for="item in scenicSpotData"
-          :key="item.ID"
-          class="col mb-3 mb-md-14 position-relative"
-        >
+      <swiper :options="swiperOption">
+        <swiper-slide v-for="item in scenicSpotData" :key="item.ID" class="">
           <div class="border rounded-4 h-100">
             <a
-              href="#mapID"
               class="stretched-link"
-              @click="
+              @click.prevent="
                 setScenicSpotCoordinate(
                   item.Name,
                   item.Position.PositionLat,
@@ -106,7 +101,7 @@
                 v-if="item.Picture.PictureUrl1"
                 :src="item.Picture.PictureUrl1"
                 :alt="item.Picture.PictureDescription1"
-                class="img magic-height-128 magic-height-md-190"
+                class="img img__card magic-height-128 magic-height-md-190"
               >
               <p
                 v-else
@@ -136,8 +131,62 @@
               </p>
             </div>
           </div>
-        </li>
-      </ul>
+        </swiper-slide>
+      </swiper>
+    </section>
+    <section v-if="restaurantData[0]" class="container mb-8 mb-lg-15">
+      <p class="mb-5 fz-larger">
+        附近餐飲(方圓兩公里)
+      </p>
+      <swiper :options="swiperOption">
+        <swiper-slide v-for="item in restaurantData" :key="item.ID">
+          <div class="border rounded-4 h-100">
+            <a
+              class="stretched-link"
+              @click.prevent="
+                setScenicSpotCoordinate(
+                  item.Name,
+                  item.Position.PositionLat,
+                  item.Position.PositionLon,
+                )
+              "
+            >
+              <img
+                v-if="item.Picture.PictureUrl1"
+                :src="item.Picture.PictureUrl1"
+                :alt="item.Picture.PictureDescription1"
+                class="img img__card magic-height-128 magic-height-md-190"
+              >
+              <p
+                v-else
+                class="
+                  img
+                  magic-height-128 magic-height-md-190
+                  bg-grey
+                  text-secondary
+                  fz-large
+                  d-flex
+                  justify-content-center
+                  align-items-center
+                "
+              >
+                暫未提供
+              </p>
+            </a>
+            <div class="py-3 px-4">
+              <h2 class="fz-medium mb-2">
+                {{ item.Name }}
+              </h2>
+              <p class="text-info mb-3 d-flex">
+                {{ item.City }}
+              </p>
+              <p class="text-truncate">
+                {{ item.Description }}
+              </p>
+            </div>
+          </div>
+        </swiper-slide>
+      </swiper>
     </section>
   </div>
 </template>
@@ -244,6 +293,38 @@ export default {
       cyclingData: [],
       myLayer: null,
       scenicSpotData: [],
+      restaurantData: [],
+      swiperOption: {
+        spaceBetween: 10,
+        // loop: true,
+        effect: 'fade',
+        pagination: {
+          el: '.swiper-pagination',
+          clickable: true,
+        },
+        navigation: {
+          nextEl: '.swiper-button-next',
+          prevEl: '.swiper-button-prev',
+        },
+        breakpoints: {
+          1024: {
+            slidesPerView: 4,
+            spaceBetween: 10,
+          },
+          768: {
+            slidesPerView: 2,
+            spaceBetween: 10,
+          },
+          640: {
+            slidesPerView: 2,
+            spaceBetween: 10,
+          },
+          320: {
+            slidesPerView: 1,
+            spaceBetween: 10,
+          },
+        },
+      },
     };
   },
   computed: {
@@ -254,6 +335,7 @@ export default {
   created() {
     if (process.client) {
       this.leaflet = require('leaflet');
+      this.swiper = require('swiper');
     }
   },
   mounted() {
@@ -277,6 +359,12 @@ export default {
         this.scenicSpotData = res.data;
       });
     },
+    getRestaurantData(latitude, longitude) {
+      const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Tourism/Restaurant?$spatialFilter=nearby(${latitude}%2C%20${longitude}%2C%202000)&$format=JSON`;
+      this.$axios.get(apiUrl).then((res) => {
+        this.restaurantData = res.data;
+      });
+    },
     changeCity(value) {
       this.nowCityName = value;
       this.cacheSearch = '';
@@ -289,14 +377,18 @@ export default {
       if (this.cacheCoordinate) {
         this.myMap.removeLayer(this.cacheCoordinate);
       }
+      // 顯示對象座標
       this.cacheCoordinate = this.leaflet
         .marker([latitude, longitude], {
           icon: this.setIconColor('blue'),
         })
-        .bindPopup(`<p>${name}</p>`);
+        .bindPopup(`<p>${name}</p>
+        <a href="https://www.google.com.tw/maps/search/${name}" target="_blank">Google 導航</a>
+        `);
       // 加到地圖後，再執行 openPopup
       this.cacheCoordinate.addTo(this.myMap).openPopup();
       this.myMap.setView([latitude, longitude], 14);
+      this.setTop();
     },
     setIconColor(color) {
       const iconColor = new this.leaflet.Icon({
@@ -307,6 +399,16 @@ export default {
         shadowSize: [41, 41],
       });
       return iconColor;
+    },
+    setTop() {
+      let value = 0;
+      if (window.screen.width >= 992) {
+        value = 550;
+      }
+      window.scrollTo({
+        top: value,
+        behavior: 'smooth',
+      });
     },
     displayMap() {
       this.myMap = this.leaflet.map('mapID', {
@@ -350,6 +452,10 @@ export default {
       // zoom the map to the layer
       this.myMap.fitBounds(this.myLayer.getBounds());
       this.getScenicSpotData(
+        geojsonFeature.coordinates[0][0][1],
+        geojsonFeature.coordinates[0][0][0],
+      );
+      this.getRestaurantData(
         geojsonFeature.coordinates[0][0][1],
         geojsonFeature.coordinates[0][0][0],
       );

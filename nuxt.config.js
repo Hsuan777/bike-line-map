@@ -21,17 +21,19 @@ export default {
       { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css'},
       { rel: 'stylesheet', href: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.css'},
       { rel: 'stylesheet', href: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.Default.css'},
+      { rel: 'stylesheet', href: 'https://unpkg.com/swiper@7/swiper-bundle.min.css'},
     ]
   },
 
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
-    "~/assets/styles/main.scss",
+    '~/assets/styles/main.scss',
   ],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
     '~/plugins/localStorage.js',
+    { src: '~/plugins/vue-awesome-swiper', ssr: false },
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -53,8 +55,7 @@ export default {
   axios: {},
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
-  build: {
-  },
+  build: {},
   router: {
     base: '/bike-line-map/'
   }
