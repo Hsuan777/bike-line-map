@@ -355,15 +355,23 @@ export default {
     },
     getScenicSpotData(latitude, longitude) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Tourism/ScenicSpot?$spatialFilter=nearby(${latitude}%2C%20${longitude}%2C%202000)&$format=JSON`;
-      this.$axios.get(apiUrl).then((res) => {
-        this.scenicSpotData = res.data;
-      });
+      this.$axios
+        .get(apiUrl, {
+          headers: this.getAuthorizationHeader(),
+        })
+        .then((res) => {
+          this.scenicSpotData = res.data;
+        });
     },
     getRestaurantData(latitude, longitude) {
       const apiUrl = `https://ptx.transportdata.tw/MOTC/v2/Tourism/Restaurant?$spatialFilter=nearby(${latitude}%2C%20${longitude}%2C%202000)&$format=JSON`;
-      this.$axios.get(apiUrl).then((res) => {
-        this.restaurantData = res.data;
-      });
+      this.$axios
+        .get(apiUrl, {
+          headers: this.getAuthorizationHeader(),
+        })
+        .then((res) => {
+          this.restaurantData = res.data;
+        });
     },
     changeCity(value) {
       this.nowCityName = value;
@@ -378,11 +386,9 @@ export default {
         this.myMap.removeLayer(this.cacheCoordinate);
       }
       // 顯示對象座標
-      this.cacheCoordinate = this.leaflet
-        .marker([latitude, longitude], {
-          icon: this.setIconColor('blue'),
-        })
-        .bindPopup(`<p>${name}</p>
+      this.cacheCoordinate = this.leaflet.marker([latitude, longitude], {
+        icon: this.setIconColor('blue'),
+      }).bindPopup(`<p>${name}</p>
         <a href="https://www.google.com.tw/maps/search/${name}" target="_blank">Google 導航</a>
         `);
       // 加到地圖後，再執行 openPopup
